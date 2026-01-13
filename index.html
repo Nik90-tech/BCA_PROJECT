@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premium Certificate Generator</title>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
+
+<!-- jsPDF + html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+/* ================= GLOBAL ================= */
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+body{
+    background:linear-gradient(135deg,#eef2f3,#cfd9df);
+    padding:20px;
+}
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+header{
+    background:#fff;
+    padding:20px;
+    border-radius:15px;
+    box-shadow:0 15px 40px rgba(0,0,0,0.15);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+header h1{
+    color:#b8860b;
+}
+
+/* ================= LAYOUT ================= */
+.main{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:30px;
+    margin-top:30px;
+}
+@media(max-width:900px){
+    .main{grid-template-columns:1fr}
+}
+
+.card{
+    background:#fff;
+    padding:25px;
+    border-radius:15px;
+    box-shadow:0 15px 40px rgba(0,0,0,0.15);
+}
+
+/* ================= FORM ================= */
+.card h2{
+    margin-bottom:20px;
+    color:#b8860b;
+    border-bottom:2px solid #b8860b;
+}
+input{
+    width:100%;
+    padding:10px;
+    margin-bottom:15px;
+    border-radius:8px;
+    border:1px solid #ccc;
+}
+.btn-group{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+button{
+    padding:10px 18px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+    color:#fff;
+}
+.btn-generate{background:#b8860b}
+.btn-pdf{background:#27ae60}
+.btn-png{background:#2980b9}
+.btn-print{background:#8e44ad}
+
+/* ================= CERTIFICATE ================= */
+.certificate{
+    position:relative;
+    background:#fff;
+    padding:60px;
+    min-height:650px;
+    text-align:center;
+    border-radius:20px;
+    border:14px solid transparent;
+    border-image:linear-gradient(135deg,#c9a227,#ffd700,#b8860b);
+    border-image-slice:1;
+    box-shadow:0 25px 60px rgba(0,0,0,0.25);
+}
+
+/* watermark */
+.certificate::before{
+    content:"CERTIFIED";
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%) rotate(-30deg);
+    font-size:6rem;
+    color:rgba(0,0,0,0.04);
+    letter-spacing:10px;
+}
+
+/* certificate text */
+.cert-title{
+    font-family:'Playfair Display',serif;
+    font-size:3rem;
+    color:#b8860b;
+}
+.cert-sub{
+    margin-top:10px;
+    letter-spacing:2px;
+    color:#555;
+}
+.cert-name{
+    margin:25px 0;
+    font-family:'Playfair Display',serif;
+    font-size:2.8rem;
+    color:#222;
+    border-bottom:3px solid #b8860b;
+    display:inline-block;
+    padding-bottom:8px;
+}
+.cert-text{
+    font-size:1.1rem;
+    margin:10px 0;
+}
+.cert-course{
+    font-size:1.5rem;
+    font-weight:600;
+    color:#333;
+}
+
+.cert-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:60px;
+}
+.sign{
+    text-align:center;
+}
+.sign-line{
+    width:180px;
+    border-top:2px solid #333;
+    margin:10px auto;
+}
+.cert-id{
+    font-size:0.9rem;
+    color:#555;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+    <h1>Premium Certificate Generator</h1>
+</header>
+
+<div class="main">
+
+<!-- ================= FORM ================= -->
+<div class="card">
+<h2>Certificate Details</h2>
+
+<input id="studentName" placeholder="Student Name">
+<input id="courseName" placeholder="Course Name">
+<input id="issuedBy" placeholder="Issued By">
+<input type="date" id="issueDate">
+<input id="duration" placeholder="Duration">
+<input id="grade" placeholder="Grade (Optional)">
+<input id="certId" readonly>
+
+<div class="btn-group">
+<button class="btn-generate" onclick="generate()">Generate</button>
+<button class="btn-pdf" onclick="downloadPDF()">Download PDF</button>
+<button class="btn-png" onclick="downloadPNG()">Download PNG</button>
+<button class="btn-print" onclick="window.print()">Print</button>
+</div>
+</div>
+
+<!-- ================= PREVIEW ================= -->
+<div class="card">
+<h2>Certificate Preview</h2>
+
+<div class="certificate" id="certificate">
+
+<h1 class="cert-title">Certificate of Completion</h1>
+<p class="cert-sub">THIS CERTIFICATE IS PRESENTED TO</p>
+
+<div class="cert-name" id="pName">Student Name</div>
+
+<p class="cert-text">for successfully completing the course</p>
+<div class="cert-course" id="pCourse">Course Name</div>
+
+<p class="cert-text">
+Duration: <span id="pDuration">--</span><br>
+Issued By: <span id="pIssued">Institute</span><br>
+Date: <span id="pDate">--</span>
+</p>
+
+<p class="cert-text" id="pGrade"></p>
+
+<div class="cert-footer">
+<div class="sign">
+<div class="sign-line"></div>
+Authorized Signature
+</div>
+
+<div>
+<div class="cert-id" id="pId"></div>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+
+function generateId(){
+    return "CERT-"+new Date().getFullYear()+"-"+Math.floor(Math.random()*90000);
+}
+document.getElementById("certId").value=generateId();
+document.getElementById("pId").innerText=document.getElementById("certId").value;
+
+function generate(){
+    pName.innerText=studentName.value||"Student Name";
+    pCourse.innerText=courseName.value||"Course Name";
+    pIssued.innerText=issuedBy.value||"Institute";
+    pDate.innerText=issueDate.value||"--";
+    pDuration.innerText=duration.value||"--";
+    pGrade.innerText=grade.value ? "Grade: "+grade.value : "";
+    document.getElementById("certId").value=generateId();
+    pId.innerText=document.getElementById("certId").value;
+}
+
+function downloadPDF(){
+    html2canvas(document.getElementById("certificate")).then(canvas=>{
+        const pdf=new jsPDF("landscape","mm","a4");
+        pdf.addImage(canvas.toDataURL("image/png"),"PNG",0,0,297,210);
+        pdf.save("certificate.pdf");
+    });
+}
+
+function downloadPNG(){
+    html2canvas(document.getElementById("certificate")).then(canvas=>{
+        const a=document.createElement("a");
+        a.href=canvas.toDataURL("image/png");
+        a.download="certificate.png";
+        a.click();
+    });
+}
+</script>
+
+</body>
+</html>
